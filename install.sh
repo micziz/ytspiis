@@ -1,7 +1,55 @@
 #!/bin/bash
 
 
-function install_dependencies(){
+install_fail () {
+    echo "Install Failed."
+    exit 1
+}
+
+
+function install_dependencies_linux(){
+	function debian(){
+		sudo apt install python3 python3-dev python3-tk python3-pip git || install_fail
+	}
+	function arch(){
+		sudo pacman -S python python-pip git || install_fail
+	}
+	function centos() {
+    	sudo yum install -y python3 || install_fail
+    	rpm -q epel-release &> /dev/null || EPEL=0
+    	sudo yum install -y python3-tkinter epel-release python3-pip git || install_fail
+    	# Honestly not sure why it's installing epel and then uninstalling
+    	[[ $EPEL -eq 0 ]] && sudo yum remove -y epel-release
+	}
+
+	function fedora() {
+    sudo dnf install python3 python3-tkinter python3-pip git python3-devel || install_fail
+	}
+
+	function opensuse() {
+		sudo zypper install -y python3 python3-pip git || install_fail
+	}
+
+	if [[ -f /etc/os-release ]]; then
+		source /etc/os-release
+		if [[ $ID == "debian" ]]; then
+			debian
+		elif [[ $ID == "arch" ]]; then
+			arch
+		elif [[ $ID == "centos" ]]; then
+			centos
+		elif [[ $ID == "fedora" ]]; then
+			fedora
+		elif [[ $ID == "opensuse" ]]; then
+			opensuse
+		else
+			echo "Unrecognized Linux distribution. Please install dependencies manually."
+			exit 1
+		fi
+	fi
+}
+
+function install_dependencies_macos(){
 	echo "Installing dependencies..."
 	# check if brew is installed
 	if ! command -v brew >/dev/null 2>&1; then
@@ -69,7 +117,15 @@ selected=`echo "$options" | fzf`
 echo "You selected $selected"
 #If the user selects install-dependencies, then run the install-dependencies function
 if [ "$selected" = "Install-Dependencies" ]; then
-    install_dependencies
+    # check if linux or macos
+	if [[ "$OSTYPE" == "linux-gnu" ]]; then
+		install_dependencies_linux
+	elif [[ "$OSTYPE" == "darwin"* ]]; then
+		install_dependencies_macos
+	else
+		echo "Unrecognized OS. Please install dependencies manually."
+		exit 1
+	fi
 #If the user selects install-yt-spammer-purge, then run the install-yt-spammer-purge function
 elif [ "$selected" = "Install-Yt-Spammer-Purge" ]; then
     install_yt_spammer_purge
