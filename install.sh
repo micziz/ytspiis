@@ -1,4 +1,4 @@
-!# usr/bin/env bash
+#!/bin/bash
 
 
 function install_dependencies(){
@@ -21,8 +21,44 @@ function install_dependencies(){
 }
 
 function install_yt_spammer_purge(){
+	cd ..
+	# check if yt_spammer_purge is installed
+	if ! command cd yt_spammer_purge >/dev/null 2>&1; then
+		echo "Cloning yt_spammer_purge..."
+		git clone https://github.com/ThioJoe/YT-Spammer-Purge.git
+		cd YT-Spammer-Purge
+		options_install=`echo "Install-Stable Install-Beta Install-Latest" | tr ' ' '\n'`
+		selected_install=`echo "$options_install" | fzf`
+		echo"You selected $selected_install"
+		if [ "$selected_install" = "Install-Stable" ]; then
+			echo "Installing stable..."
+			git checkout -q -m "$(git describe --abbrev=0 --tags)"
+			pip3 install -r requirements.txt
+			python3 setup.py install
+		elif [ "$selected_install" = "Install-Beta" ]; then
+			git tag | egrep Beta
+			read -p "Enter the beta version you want to install: " beta_version
+			# If the beta version is present in the git tags
+			if git tag | grep -q "$beta_version"; then
+				echo "Beta version $beta_version found. Installing..."
+				git checkout -q tags/"$beta_version"
+				pip3 install -r requirements.txt
+				cd ..
+				echo "YT-Spammer-Purge $beta_version installed successfully in ./y!"
+				echo "Run c to start."
+			else
+				echo "Beta version $beta_version not found. Exiting..."
+				exit 1
+			fi
+		# Install latest master
+		elif [ "$selected_install" = "Install-Latest" ]; then
+			echo "Installing latest..."
+			git pull origin master
+			pip3 install -r requirements.txt
+			python3 setup.py install
+		fi
+	fi
 	echo "Installing yt-spammer-purge..."
-	git clone https://github.com/ThioJoe/YT-Spammer-Purge.git
 	cd YT-Spammer-Purge
 	pip3 install -r requirements.txt
 }
